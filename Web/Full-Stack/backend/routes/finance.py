@@ -215,7 +215,7 @@ def get_unpaid_report():
                     for e in simple_enrollments:
                         enrollment_details.append({
                             "course_name": "Unknown Course",
-                            "course_fee": e.course_fee,
+                    "course_fee": e.course_fee,
                             "enrollment_date": e.enrollment_date.isoformat() if e.enrollment_date else None
                         })
                 except Exception as fallback_err:
@@ -229,7 +229,7 @@ def get_unpaid_report():
                 payments = Payment.query.filter_by(student_id=student.id).order_by(
                     Payment.payment_date.desc()
                 ).limit(5).all()
-                
+            
                 recent_payments = [
                     {
                         "amount": p.amount,
@@ -262,7 +262,7 @@ def get_unpaid_report():
                     "dues_balance": 0.0,
                     "enrollments": [],
                     "recent_payments": []
-                }
+            }
             
             detailed_report.append(student_data)
             total_outstanding += student.dues_balance
@@ -733,7 +733,7 @@ def get_recent_payments():
                 # alyan's modification: Use faculty field from Course model
                 try:
                     if hasattr(enrollment.course, 'faculty') and enrollment.course.faculty:
-                        faculty = enrollment.course.faculty
+                        faculty = enrollment.course.faculty.name
                     else:
                         raise AttributeError  # Fall through to name-based mapping
                 except AttributeError:
@@ -809,24 +809,24 @@ def get_payments_by_faculty():
     try:
         # alyan's modification: Use faculty field from Course model if available
         def get_faculty_from_course(course):
-            # Check if faculty field exists and has a value
+            # Check if faculty relationship exists and has a value
             try:
                 if hasattr(course, 'faculty') and course.faculty:
-                    return course.faculty
+                    return course.faculty.name  # Access the Faculty object's name
             except AttributeError:
                 pass  # Fall through to name-based mapping
             
             # Fallback: Map course names to faculties (temporary solution)
             course_lower = course.name.lower()
             if 'computer' in course_lower or 'cs' in course_lower:
-                return "Computer Science"
-            elif 'english' in course_lower or 'literature' in course_lower:
-                return "Digital Arts"
+                return "Computer and Information Sciences"
+            elif 'digital' in course_lower or 'design' in course_lower or 'animation' in course_lower:
+                return "Digital Arts and Design"
             elif 'data' in course_lower or 'analytics' in course_lower:
-                return "Computer Science"
-            elif 'business' in course_lower or 'management' in course_lower:
+                return "Computer and Information Sciences"
+            elif 'business' in course_lower or 'informatics' in course_lower:
                 return "Business Informatics"
-            elif 'math' in course_lower:
+            elif 'math' in course_lower or 'engineering' in course_lower or 'thermo' in course_lower:
                 return "Engineering"
             else:
                 return "Engineering"  # Default
@@ -855,9 +855,9 @@ def get_payments_by_faculty():
         faculty_data = {}
         faculty_colors = {
             "Engineering": "#10b981",
-            "Computer Science": "#fbbf24",
-            "Digital Arts": "#3b82f6",
-            "Business Informatics": "#10b981"
+            "Computer and Information Sciences": "#fbbf24",
+            "Digital Arts and Design": "#3b82f6",
+            "Business Informatics": "#8b5cf6"
         }
         
         for enrollment, course in enrollments:
@@ -1100,10 +1100,9 @@ def get_all_students():
         # Apply pagination
         students = query.offset(offset).limit(limit).all()
         
-        # Get all unique faculties from courses for the filter dropdown
-        all_faculties = db.session.query(Course.faculty).distinct().filter(
-            Course.faculty.isnot(None)
-        ).all()
+        # Get all unique faculties from the Faculty table for the filter dropdown
+        from models import Faculty
+        all_faculties = db.session.query(Faculty.name).all()
         faculties_list = [f[0] for f in all_faculties if f[0]]
         
         # Build student list with payment information
@@ -1131,7 +1130,7 @@ def get_all_students():
                 if first_enrollment.course:
                     # alyan's modification: Use faculty field from Course model
                     if hasattr(first_enrollment.course, 'faculty') and first_enrollment.course.faculty:
-                        faculty = first_enrollment.course.faculty
+                        faculty = first_enrollment.course.faculty.name
                     else:
                         # Fallback: Map course name to faculty
                         course_name = first_enrollment.course.name.lower()
@@ -1259,7 +1258,7 @@ def get_student_details(student_id):
             if first_enrollment.course:
                 # alyan's modification: Use faculty field from Course model
                 if hasattr(first_enrollment.course, 'faculty') and first_enrollment.course.faculty:
-                    faculty = first_enrollment.course.faculty
+                    faculty = first_enrollment.course.faculty.name
                 else:
                     # Fallback: Map course name to faculty
                     course_name = first_enrollment.course.name.lower()
@@ -1418,10 +1417,9 @@ def get_fee_structure():
         # Convert to list
         categories_list = list(categories_dict.values())
         
-        # Get unique faculties from Course model
-        faculties = db.session.query(Course.faculty).filter(
-            Course.faculty.isnot(None)
-        ).distinct().all()
+        # Get unique faculties from Faculty table
+        from models import Faculty
+        faculties = db.session.query(Faculty.name).all()
         faculties_list = [f[0] for f in faculties if f[0]]
         
         return jsonify({
@@ -2117,7 +2115,8 @@ def get_report_types():
     """
     try:
         # Get unique faculties from courses
-        faculties = db.session.query(Course.faculty).distinct().filter(Course.faculty.isnot(None)).all()
+        from models import Faculty
+        faculties = db.session.query(Faculty.name).all()
         faculty_list = ["All Faculties"] + [f[0] for f in faculties if f[0]]
         
         report_types = [
@@ -2528,7 +2527,8 @@ def get_faculty_summary():
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
         
         # Get all faculties
-        faculties = db.session.query(Course.faculty).distinct().filter(Course.faculty.isnot(None)).all()
+        from models import Faculty
+        faculties = db.session.query(Faculty.name).all()
         faculty_list = [f[0] for f in faculties if f[0]]
         
         faculties_data = []
@@ -2539,8 +2539,9 @@ def get_faculty_summary():
         
         for faculty_name in faculty_list:
             # Get enrollments for this faculty
-            enrollments = db.session.query(Enrollment).join(Course).filter(
-                Course.faculty == faculty_name
+            from models import Faculty
+            enrollments = db.session.query(Enrollment).join(Course).join(Faculty, Course.faculty_id == Faculty.id).filter(
+                Faculty.name == faculty_name
             )
             
             if start_date:
@@ -2733,12 +2734,14 @@ def get_university_summary():
             })
         
         # By faculty
-        faculties = db.session.query(Course.faculty).distinct().filter(Course.faculty.isnot(None)).all()
+        from models import Faculty
+        faculties = db.session.query(Faculty.name).all()
         by_faculty = []
         for faculty_tuple in faculties:
             faculty_name = faculty_tuple[0]
-            faculty_enrollments = db.session.query(Enrollment).join(Course).filter(
-                Course.faculty == faculty_name
+            from models import Faculty
+            faculty_enrollments = db.session.query(Enrollment).join(Course).join(Faculty, Course.faculty_id == Faculty.id).filter(
+                Faculty.name == faculty_name
             ).all()
             student_ids = [e.student_id for e in faculty_enrollments]
             faculty_payments = Payment.query.filter(
@@ -2824,8 +2827,9 @@ def _generate_student_level_report(faculty, start_date, end_date):
     
     if faculty and faculty != 'All Faculties':
         # Filter by faculty through enrollments
-        student_ids = db.session.query(Enrollment.student_id).join(Course).filter(
-            Course.faculty == faculty
+        from models import Faculty
+        student_ids = db.session.query(Enrollment.student_id).join(Course).join(Faculty, Course.faculty_id == Faculty.id).filter(
+            Faculty.name == faculty
         ).distinct().all()
         student_ids = [s[0] for s in student_ids]
         query = query.filter(User.id.in_(student_ids))
@@ -2870,7 +2874,7 @@ def _generate_student_level_report(faculty, start_date, end_date):
         if enrollments_list:
             first_enrollment = enrollments_list[0]
             if first_enrollment.course:
-                faculty_name = first_enrollment.course.faculty
+                faculty_name = first_enrollment.course.faculty.name if first_enrollment.course.faculty else "Unknown"
         
         # Get last payment date
         last_payment_date = None
@@ -3034,7 +3038,7 @@ def get_unpaid_students():
                 first_enrollment = enrollments[0]
                 if first_enrollment.course:
                     if hasattr(first_enrollment.course, 'faculty') and first_enrollment.course.faculty:
-                        faculty = first_enrollment.course.faculty
+                        faculty = first_enrollment.course.faculty.name
                     else:
                         # Fallback: Map course name to faculty
                         course_name = first_enrollment.course.name.lower()

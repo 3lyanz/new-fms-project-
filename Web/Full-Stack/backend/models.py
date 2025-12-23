@@ -5,6 +5,34 @@ from passlib.hash import pbkdf2_sha256 as sha256
 db = SQLAlchemy()
 
 # ============================================================================
+# FACULTY MODEL - Represents academic faculties/departments
+# ============================================================================
+class Faculty(db.Model):
+    __tablename__ = "faculties"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), unique=True, nullable=False)
+    code = db.Column(db.String(20), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    users = db.relationship('User', back_populates='faculty', foreign_keys='User.faculty_id')
+    courses = db.relationship('Course', back_populates='faculty', foreign_keys='Course.faculty_id')
+
+    def to_dict(self):
+        """Convert faculty to dictionary representation."""
+        return {
+            'id': self.id,
+            'name': self.name,
+            'code': self.code,
+            'description': self.description,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+# ============================================================================
 # USER MODEL - Represents both students and admin users
 # ============================================================================
 class User(db.Model):
@@ -19,10 +47,12 @@ class User(db.Model):
     blocked_at = db.Column(db.DateTime, nullable=True)  # alyan's modification: When student was blocked
     blocked_reason = db.Column(db.String(255), nullable=True)  # alyan's modification: Reason for blocking
     payment_due_date = db.Column(db.DateTime, nullable=True)  # alyan's modification: Payment due date (calculated from enrollment)
+    faculty_id = db.Column(db.Integer, db.ForeignKey('faculties.id'), nullable=True)  # Faculty/Department
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
+    faculty = db.relationship('Faculty', back_populates='users', foreign_keys=[faculty_id])
     enrollments = db.relationship('Enrollment', back_populates='student', foreign_keys='Enrollment.student_id')
     payments = db.relationship('Payment', back_populates='student', foreign_keys='Payment.student_id')
     notifications = db.relationship('Notification', back_populates='student', foreign_keys='Notification.student_id')
@@ -49,6 +79,8 @@ class User(db.Model):
             'blocked_at': self.blocked_at.isoformat() if self.blocked_at else None,  # alyan's modification
             'blocked_reason': self.blocked_reason,  # alyan's modification
             'payment_due_date': self.payment_due_date.isoformat() if self.payment_due_date else None,  # alyan's modification
+            'faculty': self.faculty.name if self.faculty else None,
+            'faculty_id': self.faculty_id,
             'created_at': self.created_at.isoformat()
         }
 
@@ -64,10 +96,11 @@ class Course(db.Model):
     credits = db.Column(db.Integer, nullable=False)  # Credit hours
     total_fee = db.Column(db.Float, nullable=False)  # Total fee for the course
     description = db.Column(db.Text, nullable=True)
-    faculty = db.Column(db.String(100), nullable=True)  # alyan's modification: Faculty/Department name (Engineering, Computer Science, Digital Arts, Business Informatics)
+    faculty_id = db.Column(db.Integer, db.ForeignKey('faculties.id'), nullable=True)  # Faculty/Department
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
+    faculty = db.relationship('Faculty', back_populates='courses', foreign_keys=[faculty_id])
     enrollments = db.relationship('Enrollment', back_populates='course', cascade='all, delete-orphan')
 
     def to_dict(self):
@@ -79,7 +112,8 @@ class Course(db.Model):
             'credits': self.credits,
             'total_fee': self.total_fee,
             'description': self.description,
-            'faculty': self.faculty,  # alyan's modification
+            'faculty': self.faculty.name if self.faculty else None,
+            'faculty_id': self.faculty_id,
             'created_at': self.created_at.isoformat()
         }
 

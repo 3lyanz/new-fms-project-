@@ -5,12 +5,14 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent backdrop */
+  background-color: rgba(0, 0, 0, 0.6);
+  /* Semi-transparent backdrop */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  backdrop-filter: blur(4px); /* Blur effect */
+  backdrop-filter: blur(4px);
+  /* Blur effect */
 }
 
 .login-card {
@@ -97,7 +99,8 @@
 
 .portal-title {
   font-weight: 700;
-  color: #111827 !important; /* Force black color */
+  color: #111827 !important;
+  /* Force black color */
   font-size: 1.125rem;
 }
 

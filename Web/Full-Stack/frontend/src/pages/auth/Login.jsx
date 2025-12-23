@@ -68,9 +68,9 @@ const Login = ({ onClose }) => {
       setTimeout(() => {
         onClose(); // Close Modal
         if (result.data.is_admin) {
-           navigate('/finance');
+          navigate('/finance');
         } else {
-           navigate('/student/dashboard');
+          navigate('/student/dashboard');
         }
       }, 1000);
     } else {
@@ -88,8 +88,7 @@ const Login = ({ onClose }) => {
   return (
     <div className="login-overlay" onClick={handleBackdropClick}>
       <div className="login-card modal-animate">
-        <button className="close-modal-btn" onClick={onClose}>&times;</button>
-        
+
         {/* Step 1: Portal Selection */}
         {view === 'selection' && (
           <>
@@ -134,8 +133,8 @@ const Login = ({ onClose }) => {
 
             <div>
               <label className="form-label">Username / ID</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className={`form-input ${errors.identifier ? 'input-error' : ''}`}
                 placeholder={view === 'student' ? 'e.g. 2023001' : 'e.g. admin'}
                 value={formData.identifier}
@@ -151,8 +150,8 @@ const Login = ({ onClose }) => {
 
             <div>
               <label className="form-label">Password</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 className={`form-input ${errors.password ? 'input-error' : ''}`}
                 placeholder="Enter your password"
                 value={formData.password}
@@ -171,7 +170,7 @@ const Login = ({ onClose }) => {
                 {errors.general}
               </div>
             )}
-            
+
             {success && (
               <div className="message-box message-success">
                 Login Successful! Redirecting...
@@ -179,8 +178,8 @@ const Login = ({ onClose }) => {
             )}
 
             <div className="submit-btn-wrapper">
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 style={{ width: '100%', opacity: loading ? 0.7 : 1 }}
                 disabled={loading}
               >
