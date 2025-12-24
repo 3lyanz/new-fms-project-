@@ -66,6 +66,14 @@ class User(db.Model):
     def verify_hash(password, hash_):
         """Verify a password against its hash."""
         return sha256.verify(password, hash_)
+    
+    def set_password(self, password):
+        """Set the user's password (instance method)."""
+        self.password_hash = User.generate_hash(password)
+    
+    def verify_password(self, password):
+        """Verify the user's password (instance method)."""
+        return User.verify_hash(password, self.password_hash)
 
     def to_dict(self):
         """Convert user to dictionary representation."""
